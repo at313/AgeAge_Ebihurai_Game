@@ -6,6 +6,10 @@ var mylabel;
 var gameLayer;
 var background;
 var scrollSpeed = 1;
+var shrimp;
+var gameGravity = -0.05;
+var gameThrust = 0.1;
+
 
 var gameScene = cc.Scene.extend({
     onEnter:function () {
@@ -26,9 +30,24 @@ var game = cc.Layer.extend({
         // mylabel.setPosition(size.width / 2, size.height / 2);
         // this.addChild(mylabel);
 
+        //エビちゃんを操作
+   cc.eventManager.addListener({
+           event: cc.EventListener.MOUSE,
+           onMouseDown: function(event){
+               shrimp.engineOn = true;
+           },
+           onMouseUp: function(event){
+               shrimp.engineOn = false;
+           }
+       },this)
+
         //スクロールする背景スプライトをインスタンス　スクロール速度:scrollSpeed
         background = new ScrollingBG();
         this.addChild(background);
+
+        shrimp = new Shrimp();
+        this.addChild(shrimp);
+
         //scheduleUpdate関数は、描画の都度、update関数を呼び出す
         this.scheduleUpdate();
 
@@ -36,6 +55,7 @@ var game = cc.Layer.extend({
     update:function(dt){
       //backgroundのscrollメソッドを呼び出す
         background.scroll();
+        shrimp.updateY();
 
     },
 
@@ -61,4 +81,27 @@ var ScrollingBG = cc.Sprite.extend({
             this.setPosition(this.getPosition().x+480,this.getPosition().y);
         }
     }
+});
+
+//重力（仮）で落下する　エビちゃん　
+var Shrimp = cc.Sprite.extend({
+  ctor: function() {
+    this._super();
+    this.initWithFile(res.shrimp0_png);
+    this.ySpeed = 0; //エビちゃんの垂直速度
+
+    this.engineOn = false; //カスタム属性追加　エビちゃんのジャンプON OFF
+  },
+  onEnter: function() {
+    this.setPosition(60, 160);
+  },
+  updateY: function() {
+
+if(this.engineOn){
+    this.ySpeed += gameThrust;
+}
+
+    this.setPosition(this.getPosition().x, this.getPosition().y + this.ySpeed);
+    this.ySpeed += gameGravity;
+  }
 });
