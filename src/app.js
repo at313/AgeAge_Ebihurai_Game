@@ -2,7 +2,6 @@
 
 var size;
 var mylabel;
-//背景スクロールで追加した部分
 var gameLayer;
 var background;
 var rock_above;
@@ -17,7 +16,14 @@ var gameGravity = -0.05;
 var gameThrust = 0.1;
 var life = 3;
 var score = 0;
+var itemArray;
+itemArray = new Array(res.nagoya0_png, res.nagoya1_png, res.nagoya2_png, res.nagoya3_png, res.nagoya4_png, res.nagoya5_png, res.nagoya6_png);
+var ebiflg;
+var ebiArray;
+ebiArray = new Array(res.shrimp0_png, res.shrimp1_png, res.shrimp2_png, res.shrimp3_png);
 
+var emitter;
+var emitter2;
 
 var gameScene = cc.Scene.extend({
     onEnter:function () {
@@ -91,14 +97,30 @@ var game = cc.Layer.extend({
         scoreText.setColor(cc.color(0, 0, 0, 255));
         this.reorderChild(scoreText, 10);
 
+        //パーティクル設定
+        emitter = cc.ParticleMeteor.create();
+        this.addChild(emitter, 1);
+        var myTexture = cc.textureCache.addImage(res.particle_png);
+        emitter.setTexture(myTexture);
+        emitter.setStartSize(20);
+        emitter.setEndSize(30);
+/*
+        emitter2 = cc.ParticleMeteor.create();
+        this.addChild(emitter2, 1);
+        var myTexture2 = cc.textureCache.addImage(res.particle2_png);
+        emitter2.setTexture(myTexture2);
+        emitter2.setStartSize(20);
+        emitter2.setEndSize(30);
+*/
         //scheduleUpdate関数は、描画の都度、update関数を呼び出す
         this.scheduleUpdate();
 
-        this.schedule(this.addItem, 1.5);
+        //アイテム生成
+        this.schedule(this.addItem, 0.5);
 
         //サンゴの生成で追加
-        this.schedule(this.addCoral_u, 3.0);
-        this.schedule(this.addCoral_a, 4.0);
+        this.schedule(this.addCoral_u, 2.0);
+        this.schedule(this.addCoral_a, 3.5);
 
     },
     update:function(dt){
@@ -247,22 +269,27 @@ var ScrollingLA = cc.Sprite.extend({
 //重力（仮）で落下する　エビちゃん　
 var Shrimp = cc.Sprite.extend({
   ctor: function() {
+    ebiflg = 0;
     this._super();
-    this.initWithFile(res.shrimp0_png);
+    this.initWithFile(ebiArray[0]);
     this.ySpeed = 0; //エビちゃんの垂直速度
 
     this.engineOn = false; //カスタム属性追加　エビちゃんのジャンプON OFF
     this.invulnerability = 0; //無敵モード時間　初期値0
   },
   onEnter: function() {
-    this.setPosition(60, 160);
+    this.setPosition(60, size.height * 0.5);
   },
   updateY: function() {
-
     if(this.engineOn){
+      ebiflg++;
+      if(ebiflg == 4) ebiflg = 0;
+      this.initWithFile(ebiArray[ebiflg]);
       this.ySpeed += gameThrust;
-    }
-
+      emitter.setPosition(this.getPosition().x - 25, this.getPosition().y);
+    }else {
+      emitter.setPosition(this.getPosition().x - 250, this.getPosition().y);
+   }
     //無敵モード中の視覚効果
     if (this.invulnerability > 0) {
       this.invulnerability--;
@@ -279,14 +306,12 @@ var Shrimp = cc.Sprite.extend({
        lifeText.setString("LIFE : " + life);
        if(life < 1){
          audioEngine.stopMusic();
+         gameover.score = score;
          cc.director.runScene(new gameover());
        }
        restartGame();
-
      }
-
   }
-
 });
 
 // 下サンゴクラス
@@ -317,6 +342,7 @@ var Coral_under = cc.Sprite.extend({
       lifeText.setString("LIFE : " + life);
       if(life < 1){
         audioEngine.stopMusic();
+        gameover.score = score;
         cc.director.runScene(new gameover());
       }
       restartGame();
@@ -356,6 +382,7 @@ var Coral_above = cc.Sprite.extend({
       lifeText.setString("LIFE : " + life);
       if(life < 1){
         audioEngine.stopMusic();
+        gameover.score = score;
         cc.director.runScene(new gameover());
       }
       restartGame();
@@ -369,9 +396,11 @@ var Coral_above = cc.Sprite.extend({
 
 //アイテムクラス
 var Item = cc.Sprite.extend({
+
   ctor: function() {
     this._super();
-    this.initWithFile(res.nagoya0_png);
+    var num = Math.floor(Math.random() * itemArray.length);
+    this.initWithFile(itemArray[num]);
   },
   onEnter: function() {
     this._super();
@@ -393,7 +422,7 @@ var Item = cc.Sprite.extend({
       audioEngine.playEffect(res.se_decide);
 
       //スコア追加処理
-      score += 10;
+      score += 5;
       scoreText.setString("SCOR : " + score);
       }
 		//画面の外にでた小惑星を消去する処理
@@ -406,7 +435,7 @@ var Item = cc.Sprite.extend({
 //エビちゃんを元の位置に戻して、エビちゃんの変数を初期化する
 function restartGame() {
   shrimp.ySpeed = 0;
-  shrimp.setPosition(shrimp.getPosition().x, 160);
+  shrimp.setPosition(shrimp.getPosition().x, size.height * 0.5);
   shrimp.invulnerability = 100;
   //bgmリスタート
   if (!audioEngine.isMusicPlaying()) {

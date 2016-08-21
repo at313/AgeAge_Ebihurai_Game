@@ -31,7 +31,9 @@ var res = {
     se_death : "res/Death.mp3",
     se_decide : "res/se_decide.mp3",
     se_flee : "res/se_flee1.mp3",
-    se_surprise : "res/se_surprise.mp3"
+    se_surprise : "res/se_surprise.mp3",
+    particle_png : "res/particle_texture.png",
+    particle2_png : "res/particle2_texture.png",
 };
 
 var g_resources = [];

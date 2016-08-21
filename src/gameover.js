@@ -1,4 +1,5 @@
 //gameover.js
+score;
 var gameover = cc.Layer.extend({
     ctor: function() {
         this._super();
@@ -13,9 +14,15 @@ var gameover = cc.Layer.extend({
         label01.setPosition(size.width / 2, size.height * 0.5);　
         this.addChild(label01);
 
-        var label02 = cc.Sprite.create(res.replay_button_png);　
-        label02.setPosition(size.width / 2, size.height * 0.2);　
+        var label02 = cc.Sprite.create(res.button3_png);　
+        label02.setPosition(size.width / 2, size.height * 0.15);　
         this.addChild(label02);
+
+        scoreText = cc.LabelTTF.create("SCOR : " +score ,"Arial","30",cc.TEXT_ALIGNMENT_CENTER);
+        this.addChild(scoreText);
+        scoreText.setPosition(220,220);
+        scoreText.setColor(cc.color(250, 250, 0, 255));
+        this.reorderChild(scoreText, 10);
 
         // タップイベントリスナーを登録する
                 cc.eventManager.addListener({
