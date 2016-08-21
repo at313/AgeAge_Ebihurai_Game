@@ -15,16 +15,23 @@ var scrollSpeed3 = 2;
 var shrimp;
 var gameGravity = -0.05;
 var gameThrust = 0.1;
+var life = 3;
+var score = 0;
 
 
 var gameScene = cc.Scene.extend({
     onEnter:function () {
-      //  var gradient = cc.LayerGradient.create(cc.color(0, 0, 0, 255), cc.color(0x46, 0x82, 0xB4, 255));
-      //  this.addChild(gradient);
         this._super();
         gameLayer = new game();
         gameLayer.init();
         this.addChild(gameLayer);
+
+        //音楽再生エンジン
+    audioEngine = cc.audioEngine;
+    //bgm再生
+    if (!audioEngine.isMusicPlaying()) {
+      audioEngine.playMusic(res.bgm_main, true);
+    }
     }
 });
 
@@ -70,8 +77,28 @@ var game = cc.Layer.extend({
         shrimp = new Shrimp();
         this.addChild(shrimp);
 
+        // 残機表示
+        lifeText = cc.LabelTTF.create("LIFE : " +life ,"Arial","30",cc.TEXT_ALIGNMENT_CENTER);
+        this.addChild(lifeText);
+        lifeText.setPosition(70,540);
+        lifeText.setColor(cc.color(0, 0, 0, 255));
+        this.reorderChild(lifeText, 10);
+
+        //スコア表示
+        scoreText = cc.LabelTTF.create("SCOR : " +score ,"Arial","30",cc.TEXT_ALIGNMENT_CENTER);
+        this.addChild(scoreText);
+        scoreText.setPosition(220,540);
+        scoreText.setColor(cc.color(0, 0, 0, 255));
+        this.reorderChild(scoreText, 10);
+
         //scheduleUpdate関数は、描画の都度、update関数を呼び出す
         this.scheduleUpdate();
+
+        this.schedule(this.addItem, 1.5);
+
+        //サンゴの生成で追加
+        this.schedule(this.addCoral_u, 3.0);
+        this.schedule(this.addCoral_a, 4.0);
 
     },
     update:function(dt){
@@ -83,6 +110,22 @@ var game = cc.Layer.extend({
         land.scroll();
         shrimp.updateY();
 
+    },
+
+    addItem: function(event){
+      var item = new Item();
+      this.addChild(item);
+    },
+    addCoral_u: function(event) {
+      var coral = new Coral_under();
+      this.addChild(coral);
+    },
+    addCoral_a: function(event) {
+      var coral = new Coral_above();
+      this.addChild(coral);
+    },
+    removeCoral: function(coral) {
+      this.removeChild(coral);
     },
 
 });
@@ -209,17 +252,164 @@ var Shrimp = cc.Sprite.extend({
     this.ySpeed = 0; //エビちゃんの垂直速度
 
     this.engineOn = false; //カスタム属性追加　エビちゃんのジャンプON OFF
+    this.invulnerability = 0; //無敵モード時間　初期値0
   },
   onEnter: function() {
     this.setPosition(60, 160);
   },
   updateY: function() {
 
-if(this.engineOn){
-    this.ySpeed += gameThrust;
-}
+    if(this.engineOn){
+      this.ySpeed += gameThrust;
+    }
+
+    //無敵モード中の視覚効果
+    if (this.invulnerability > 0) {
+      this.invulnerability--;
+      this.setOpacity(255 - this.getOpacity());
+    }
+
 
     this.setPosition(this.getPosition().x, this.getPosition().y + this.ySpeed);
     this.ySpeed += gameGravity;
+
+    //エビちゃんが画面外にでたら、リスタートさせる
+     if (this.getPosition().y < 0 || this.getPosition().y > 568) {
+       life--;
+       lifeText.setString("LIFE : " + life);
+       if(life < 1){
+         audioEngine.stopMusic();
+         cc.director.runScene(new gameover());
+       }
+       restartGame();
+
+     }
+
+  }
+
+});
+
+// 下サンゴクラス
+var Coral_under = cc.Sprite.extend({
+  ctor: function() {
+    this._super();
+    this.initWithFile(res.coral_under_png);
+  },
+  onEnter: function() {
+    this._super();
+    this.setPosition(600, Math.random(5) * 100);
+    var moveAction = cc.MoveTo.create(6, new cc.Point(-100, -150));
+    this.runAction(moveAction);
+    this.scheduleUpdate();
+  },
+  update: function(dt) {
+    //サンゴとの衝突を判定する処理
+    var shrimpBoundingBox = shrimp.getBoundingBox();
+    var coralBoundingBox = this.getBoundingBox();
+    //rectIntersectsRectは２つの矩形が交わっているかチェックする
+    if (cc.rectIntersectsRect(shrimpBoundingBox, coralBoundingBox) && shrimp.invulnerability == 0) {
+      gameLayer.removeCoral(this); //を削除する
+      //ボリュームを上げる
+      audioEngine.setEffectsVolume(audioEngine.getEffectsVolume() + 0.3);
+      //効果音を再生する
+      audioEngine.playEffect(res.se_death);
+      life--;
+      lifeText.setString("LIFE : " + life);
+      if(life < 1){
+        audioEngine.stopMusic();
+        cc.director.runScene(new gameover());
+      }
+      restartGame();
+    }
+    //画面の外にでたサンゴを消去する処理
+    if (this.getPosition().x < -50) {
+      gameLayer.removeCoral(this)
+    }
   }
 });
+
+// 上サンゴクラス
+var Coral_above = cc.Sprite.extend({
+  ctor: function() {
+    this._super();
+    this.initWithFile(res.coral_above_png);
+  },
+  onEnter: function() {
+    this._super();
+    this.setPosition(600, (Math.random(5) * 500)+400);
+    var moveAction = cc.MoveTo.create(6, new cc.Point(-100, 600));
+    this.runAction(moveAction);
+    this.scheduleUpdate();
+  },
+  update: function(dt) {
+    //サンゴとの衝突を判定する処理
+    var shrimpBoundingBox = shrimp.getBoundingBox();
+    var coralBoundingBox = this.getBoundingBox();
+    //rectIntersectsRectは２つの矩形が交わっているかチェックする
+    if (cc.rectIntersectsRect(shrimpBoundingBox, coralBoundingBox) && shrimp.invulnerability == 0) {
+      gameLayer.removeCoral(this); //を削除する
+      //ボリュームを上げる
+      audioEngine.setEffectsVolume(audioEngine.getEffectsVolume() + 0.3);
+      //効果音を再生する
+      audioEngine.playEffect(res.se_death);
+      life--;
+      lifeText.setString("LIFE : " + life);
+      if(life < 1){
+        audioEngine.stopMusic();
+        cc.director.runScene(new gameover());
+      }
+      restartGame();
+    }
+    //画面の外にでたサンゴを消去する処理
+    if (this.getPosition().x < -50) {
+      gameLayer.removeCoral(this)
+    }
+  }
+});
+
+//アイテムクラス
+var Item = cc.Sprite.extend({
+  ctor: function() {
+    this._super();
+    this.initWithFile(res.nagoya0_png);
+  },
+  onEnter: function() {
+    this._super();
+    this.setPosition(600, Math.random() * 568);
+    var moveAction = cc.MoveTo.create(2.5, new cc.Point(-100, Math.random() * 568));
+    this.runAction(moveAction);
+    this.scheduleUpdate();
+  },
+  update: function(dt) {
+    //アイテムとの衝突を判定する処理
+    var shrimpBoundingBox = shrimp.getBoundingBox();
+    var itemBoundingBox = this.getBoundingBox();
+		//rectIntersectsRectは２つの矩形が交わっているかチェックする
+    if (cc.rectIntersectsRect(shrimpBoundingBox, itemBoundingBox) ) {
+      gameLayer.removeCoral(this);//アイテムを削除する
+      //ボリュームを上げる
+      audioEngine.setEffectsVolume(audioEngine.getEffectsVolume() + 0.3);
+      //効果音を再生する
+      audioEngine.playEffect(res.se_decide);
+
+      //スコア追加処理
+      score += 10;
+      scoreText.setString("SCOR : " + score);
+      }
+		//画面の外にでた小惑星を消去する処理
+    if (this.getPosition().x < -50) {
+      gameLayer.removeCoral(this)
+    }
+  }
+});
+
+//エビちゃんを元の位置に戻して、エビちゃんの変数を初期化する
+function restartGame() {
+  shrimp.ySpeed = 0;
+  shrimp.setPosition(shrimp.getPosition().x, 160);
+  shrimp.invulnerability = 100;
+  //bgmリスタート
+  if (!audioEngine.isMusicPlaying()) {
+    audioEngine.resumeMusic();
+  }
+}
