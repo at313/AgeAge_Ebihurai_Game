@@ -28,6 +28,8 @@ var emitter2;
 var gameScene = cc.Scene.extend({
     onEnter:function () {
         this._super();
+        life = 3;
+        score = 0;
         gameLayer = new game();
         gameLayer.init();
         this.addChild(gameLayer);
@@ -76,7 +78,7 @@ var game = cc.Layer.extend({
         ceiling = new ScrollingCE();
         this.addChild(ceiling);
 
-        //スクロールする背景スプライトをインスタンス5　スクロール速度:scrollSpeed2
+        //スクロールする背景スプライトをインスタンス5　スクロール速度:scrollSpeed3
         land = new ScrollingLA();
         this.addChild(land);
 
@@ -91,7 +93,7 @@ var game = cc.Layer.extend({
         this.reorderChild(lifeText, 10);
 
         //スコア表示
-        scoreText = cc.LabelTTF.create("SCOR : " +score ,"Arial","30",cc.TEXT_ALIGNMENT_CENTER);
+        scoreText = cc.LabelTTF.create("SCORE : " +score ,"Arial","30",cc.TEXT_ALIGNMENT_CENTER);
         this.addChild(scoreText);
         scoreText.setPosition(220,540);
         scoreText.setColor(cc.color(0, 0, 0, 255));
@@ -423,7 +425,7 @@ var Item = cc.Sprite.extend({
 
       //スコア追加処理
       score += 5;
-      scoreText.setString("SCOR : " + score);
+      scoreText.setString("SCORE : " + score);
       }
 		//画面の外にでた小惑星を消去する処理
     if (this.getPosition().x < -50) {

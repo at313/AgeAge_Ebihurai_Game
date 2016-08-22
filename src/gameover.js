@@ -18,7 +18,7 @@ var gameover = cc.Layer.extend({
         label02.setPosition(size.width / 2, size.height * 0.15);　
         this.addChild(label02);
 
-        scoreText = cc.LabelTTF.create("SCOR : " +score ,"Arial","30",cc.TEXT_ALIGNMENT_CENTER);
+        scoreText = cc.LabelTTF.create("SCORE : " +score ,"Arial","30",cc.TEXT_ALIGNMENT_CENTER);
         this.addChild(scoreText);
         scoreText.setPosition(220,220);
         scoreText.setColor(cc.color(250, 250, 0, 255));
